@@ -1,0 +1,19 @@
+[project]
+name = "scopelint"
+version = "0.1.0"
+description = "Detect when an AI coding agent's actual git diff drifts beyond the task it was asked to do"
+requires-python = ">=3.11"
+dependencies = []
+
+[project.scripts]
+scopelint = "scopelint.cli:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/scopelint"]
+
+[dependency-groups]
+dev = ["pytest>=8.0"]
