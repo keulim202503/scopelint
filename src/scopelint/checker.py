@@ -51,8 +51,7 @@ def extract_keywords(text: str) -> set[str]:
 
 
 def _path_tokens(path: str) -> set[str]:
-    stem = path.rsplit("/", 1)[-1]
-    stem = re.sub(r"\.[a-zA-Z0-9]+$", "", stem)
+    stem = re.sub(r"\.[a-zA-Z0-9]+$", "", path)
     tokens = re.split(r"[^0-9a-zA-Z가-힣]+", stem.lower())
     return {t for t in tokens if len(t) >= 2 and t not in STOPWORDS}
 

@@ -46,6 +46,14 @@ def test_sensitive_file_allowed_when_explicitly_mentioned():
     assert result.ok is True
 
 
+def test_directory_name_matches_task_keyword():
+    files = [ChangedFile(path="redmine/client.py", insertions=5, deletions=1)]
+    result = check_scope("Redmine 이슈 파싱 버그를 수정해줘", files)
+
+    assert result.ok is True
+    assert result.findings == []
+
+
 def test_empty_task_text_skips_keyword_check_but_still_flags_sensitive():
     files = [
         ChangedFile(path="src/foo.py", insertions=1, deletions=0),
