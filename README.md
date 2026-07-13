@@ -49,6 +49,7 @@ GitHub Action 무료 + 팀 대시보드(반복 발생 스코프 크립 패턴 �
 - [x] GitHub Action 래핑
 - [x] 실사용(dev-pipeline) 테스트로 발견한 오탐(디렉터리명 미매칭) 버그 수정
 - [x] GitHub PR diff 지원 (`--pr`/`--repo`, gh CLI 기반)
+- [x] 팀 대시보드 프로토타입 (`--log-file` 기록 + `scopelint-dashboard` 집계, 수익 모델 검증용)
 
 ## GitHub Action 사용법
 

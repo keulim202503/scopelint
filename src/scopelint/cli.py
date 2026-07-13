@@ -1,9 +1,12 @@
 import argparse
 import sys
 from collections.abc import Sequence
+from datetime import UTC, datetime
 
 from scopelint.checker import ChangedFile, ScopeResult, check_scope
 from scopelint.collector import collect_changed_files, collect_pr_changed_files, resolve_repo_slug
+from scopelint.history import HistoryEntry
+from scopelint.history import record_result as _record_result
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -18,6 +21,11 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--pr", type=int, default=None, help="검사할 GitHub PR 번호 (gh CLI 필요)")
     parser.add_argument(
         "--repo", default=None, help="owner/repo 형식의 저장소 (기본: 현재 디렉터리에서 자동 추론)"
+    )
+    parser.add_argument(
+        "--log-file",
+        default=None,
+        help="검사 결과를 JSONL로 기록할 경로 (scopelint-dashboard로 집계 가능)",
     )
     return parser
 
@@ -34,6 +42,7 @@ def run(
     collect_files=collect_changed_files,
     collect_pr_files=collect_pr_changed_files,
     resolve_repo=resolve_repo_slug,
+    record=_record_result,
 ) -> int:
     parser = build_parser()
     args = parser.parse_args(argv)
@@ -47,6 +56,15 @@ def run(
         changed_files = collect_files(cwd=args.cwd)
 
     result: ScopeResult = check_scope(task_text, changed_files)
+
+    if args.log_file:
+        entry = HistoryEntry(
+            timestamp=datetime.now(UTC).isoformat(),
+            task=task_text,
+            ok=result.ok,
+            findings=list(result.findings),
+        )
+        record(args.log_file, entry)
 
     if result.ok:
         print("OK: 모든 변경 사항이 작업 범위 안에 있습니다.")

@@ -86,3 +86,44 @@ def test_run_with_pr_resolves_repo_when_not_given():
 
     assert exit_code == 1
     assert resolve_repo_calls == [None]
+
+
+def test_run_writes_log_entry_when_log_file_given(tmp_path):
+    files = [ChangedFile(path="src/billing/invoice.py", insertions=40, deletions=0)]
+    collect_files = _fake_collector(files)
+    log_path = tmp_path / "history.jsonl"
+    recorded = []
+
+    def fake_record(path, entry):
+        recorded.append((path, entry))
+
+    exit_code = run(
+        ["--task", "로그인(login) 버그를 수정해줘", "--log-file", str(log_path)],
+        collect_files=collect_files,
+        record=fake_record,
+    )
+
+    assert exit_code == 1
+    assert len(recorded) == 1
+    logged_path, entry = recorded[0]
+    assert logged_path == str(log_path)
+    assert entry.ok is False
+    assert entry.findings
+
+
+def test_run_does_not_record_when_log_file_not_given():
+    files = [ChangedFile(path="src/auth/login.py", insertions=10, deletions=2)]
+    collect_files = _fake_collector(files)
+    recorded = []
+
+    def fake_record(path, entry):
+        recorded.append((path, entry))
+
+    exit_code = run(
+        ["--task", "로그인(login) 버그를 수정해줘"],
+        collect_files=collect_files,
+        record=fake_record,
+    )
+
+    assert exit_code == 0
+    assert recorded == []
