@@ -48,6 +48,7 @@ GitHub Action 무료 + 팀 대시보드(반복 발생 스코프 크립 패턴 �
 - [x] 실제 저장소 대상 시연 (스코프 크립 탐지 → exit 1 확인)
 - [x] GitHub Action 래핑
 - [x] 실사용(dev-pipeline) 테스트로 발견한 오탐(디렉터리명 미매칭) 버그 수정
+- [x] GitHub PR diff 지원 (`--pr`/`--repo`, gh CLI 기반)
 
 ## GitHub Action 사용법
 
@@ -65,6 +66,23 @@ GitHub Action 무료 + 팀 대시보드(반복 발생 스코프 크립 패턴 �
 
 `task`/`task-file` 중 정확히 하나를 넘겨야 합니다. 범위 이탈이 발견되면 액션이
 non-zero exit로 실패해 CI를 막습니다. 예시 워크플로: `.github/workflows/example-usage.yml`.
+
+## GitHub PR diff 모드
+
+로컬 `git diff` 대신 특정 PR의 변경 파일을 직접 검사할 수 있습니다. `gh` CLI가
+설치되어 있고 인증되어 있어야 합니다 (`gh auth status`).
+
+```
+$ scopelint --task "로그인 버그를 수정해줘" --pr 42
+$ scopelint --task "로그인 버그를 수정해줘" --pr 42 --repo owner/repo
+```
+
+`--repo`를 생략하면 현재 디렉터리(`--cwd`)의 git remote로부터 `gh repo view`를 통해
+`owner/repo`를 자동 추론합니다. 내부적으로 `gh api repos/{owner}/{repo}/pulls/{n}/files`를
+호출해 PR에서 실제로 변경된 파일 목록(추가/삭제 라인 수 포함)을 가져오며, 이후 대조
+로직은 로컬 diff 모드와 동일합니다. 이 모드는 이미 완결된 PR을 리뷰 전에 검사하거나,
+CI에서 `git diff` 히스토리가 얕게 checkout된 경우(예: `fetch-depth: 1`)에도 정확한
+변경 파일 목록을 얻고 싶을 때 유용합니다.
 
 ## 시연: 실제 실행 로그
 

@@ -3,7 +3,7 @@ import sys
 from collections.abc import Sequence
 
 from scopelint.checker import ChangedFile, ScopeResult, check_scope
-from scopelint.collector import collect_changed_files
+from scopelint.collector import collect_changed_files, collect_pr_changed_files, resolve_repo_slug
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -15,6 +15,10 @@ def build_parser() -> argparse.ArgumentParser:
     task_group.add_argument("--task", help="에이전트에게 요청한 작업 설명 텍스트")
     task_group.add_argument("--task-file", help="작업 설명 텍스트가 담긴 파일 경로")
     parser.add_argument("--cwd", default=None, help="git diff를 실행할 저장소 경로")
+    parser.add_argument("--pr", type=int, default=None, help="검사할 GitHub PR 번호 (gh CLI 필요)")
+    parser.add_argument(
+        "--repo", default=None, help="owner/repo 형식의 저장소 (기본: 현재 디렉터리에서 자동 추론)"
+    )
     return parser
 
 
@@ -28,12 +32,19 @@ def _read_task(args: argparse.Namespace) -> str:
 def run(
     argv: Sequence[str],
     collect_files=collect_changed_files,
+    collect_pr_files=collect_pr_changed_files,
+    resolve_repo=resolve_repo_slug,
 ) -> int:
     parser = build_parser()
     args = parser.parse_args(argv)
 
     task_text = _read_task(args)
-    changed_files: list[ChangedFile] = collect_files(cwd=args.cwd)
+
+    if args.pr is not None:
+        repo = args.repo or resolve_repo(cwd=args.cwd)
+        changed_files: list[ChangedFile] = collect_pr_files(repo, args.pr, cwd=args.cwd)
+    else:
+        changed_files = collect_files(cwd=args.cwd)
 
     result: ScopeResult = check_scope(task_text, changed_files)
 
