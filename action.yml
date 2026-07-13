@@ -1,0 +1,49 @@
+name: 'ScopeLint'
+description: "AI 코딩 에이전트의 실제 git diff가 요청한 작업 범위를 벗어났는지 탐지합니다."
+author: 'judydba'
+
+inputs:
+  task:
+    description: '에이전트에게 요청한 작업 설명 텍스트 (task-file과 동시 사용 불가)'
+    required: false
+  task-file:
+    description: '작업 설명 텍스트가 담긴 파일 경로 (task와 동시 사용 불가)'
+    required: false
+  working-directory:
+    description: 'git diff를 실행할 저장소 경로'
+    required: false
+    default: '.'
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.12'
+
+    - name: Install scopelint
+      shell: bash
+      run: pip install "${{ github.action_path }}"
+
+    - name: Run scopelint
+      shell: bash
+      env:
+        SCOPELINT_TASK: ${{ inputs.task }}
+        SCOPELINT_TASK_FILE: ${{ inputs.task-file }}
+        SCOPELINT_CWD: ${{ inputs.working-directory }}
+      run: |
+        if [ -z "$SCOPELINT_TASK" ] && [ -z "$SCOPELINT_TASK_FILE" ]; then
+          echo "::error::task 또는 task-file 입력 중 하나는 필수입니다."
+          exit 1
+        fi
+
+        if [ -n "$SCOPELINT_TASK_FILE" ]; then
+          scopelint --task-file "$SCOPELINT_TASK_FILE" --cwd "$SCOPELINT_CWD"
+        else
+          scopelint --task "$SCOPELINT_TASK" --cwd "$SCOPELINT_CWD"
+        fi
+
+branding:
+  icon: 'crop'
+  color: 'orange'
