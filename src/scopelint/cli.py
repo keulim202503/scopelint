@@ -1,12 +1,26 @@
 import argparse
+import json
 import sys
+import urllib.request
 from collections.abc import Sequence
+from dataclasses import asdict
 from datetime import UTC, datetime
 
 from scopelint.checker import ChangedFile, ScopeResult, check_scope
 from scopelint.collector import collect_changed_files, collect_pr_changed_files, resolve_repo_slug
 from scopelint.history import HistoryEntry
 from scopelint.history import record_result as _record_result
+
+
+def _post_result(remote_url: str, api_key: str, entry: HistoryEntry) -> None:
+    body = json.dumps(asdict(entry)).encode("utf-8")
+    request = urllib.request.Request(  # noqa: S310
+        f"{remote_url}/ingest",
+        data=body,
+        headers={"Content-Type": "application/json", "X-API-Key": api_key},
+        method="POST",
+    )
+    urllib.request.urlopen(request)  # noqa: S310
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -27,6 +41,16 @@ def build_parser() -> argparse.ArgumentParser:
         default=None,
         help="검사 결과를 JSONL로 기록할 경로 (scopelint-dashboard로 집계 가능)",
     )
+    parser.add_argument(
+        "--remote-url",
+        default=None,
+        help="검사 결과를 전송할 scopelint 대시보드 서버 URL",
+    )
+    parser.add_argument(
+        "--api-key",
+        default=None,
+        help="--remote-url 사용 시 필요한 팀 API 키",
+    )
     return parser
 
 
@@ -43,9 +67,13 @@ def run(
     collect_pr_files=collect_pr_changed_files,
     resolve_repo=resolve_repo_slug,
     record=_record_result,
+    post_result=_post_result,
 ) -> int:
     parser = build_parser()
     args = parser.parse_args(argv)
+
+    if args.remote_url and not args.api_key:
+        parser.error("--remote-url requires --api-key")
 
     task_text = _read_task(args)
 
@@ -57,14 +85,17 @@ def run(
 
     result: ScopeResult = check_scope(task_text, changed_files)
 
-    if args.log_file:
+    if args.log_file or args.remote_url:
         entry = HistoryEntry(
             timestamp=datetime.now(UTC).isoformat(),
             task=task_text,
             ok=result.ok,
             findings=list(result.findings),
         )
-        record(args.log_file, entry)
+        if args.log_file:
+            record(args.log_file, entry)
+        if args.remote_url:
+            post_result(args.remote_url, args.api_key, entry)
 
     if result.ok:
         print("OK: 모든 변경 사항이 작업 범위 안에 있습니다.")

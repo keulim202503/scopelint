@@ -5,9 +5,13 @@ description = "Detect when an AI coding agent's actual git diff drifts beyond th
 requires-python = ">=3.11"
 dependencies = []
 
+[project.optional-dependencies]
+server = ["fastapi>=0.115", "uvicorn>=0.30"]
+
 [project.scripts]
 scopelint = "scopelint.cli:main"
 scopelint-dashboard = "scopelint.dashboard_cli:main"
+scopelint-server = "scopelint.server_cli:main"
 
 [build-system]
 requires = ["hatchling"]
@@ -17,4 +21,4 @@ build-backend = "hatchling.build"
 packages = ["src/scopelint"]
 
 [dependency-groups]
-dev = ["pytest>=8.0"]
+dev = ["pytest>=8.0", "fastapi>=0.115", "uvicorn>=0.30", "httpx>=0.27"]
